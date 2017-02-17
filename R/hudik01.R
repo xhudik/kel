@@ -8,6 +8,7 @@ library(tidyverse)
 library(gridExtra)
 
 #read external function
+#set setwd() properly -otherwise you want be able to source 
 source("read_cred.R")
 #read access to DB
 cred <- read_cred()
