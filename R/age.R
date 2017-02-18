@@ -24,7 +24,6 @@ chrono <- KEL %>% tbl("chrono") %>% collect(n=Inf)
 core <- KEL %>% tbl("core") %>% collect(n=Inf)
 plot <- KEL %>% tbl("plot") %>% collect(n=Inf)
 tree <- KEL %>% tbl("tree") %>% collect(n=Inf) 
-tree$treen <-  as.numeric(tree$treen)
 
 
 save(chrono,core,plot,tree,file="../data/tables.rda")
@@ -32,10 +31,13 @@ save(chrono,core,plot,tree,file="../data/tables.rda")
 
 ######### Computation ###########
 
+#80025 trees in tree: str(tree%>%distinct(treeid))
+#20477 trees in chrono: str(chrono%>%distinct(treeid))
 
-
-years <- chrono %>% filter(!is.na(year)) %>% group_by(treeid) %>% summarise(firsty = min(year), 
-                                                   lasty = max(year)) %>% ungroup()
+#20477 trees in our years: str(years)
+years <- chrono %>% filter(!is.na(year)) %>% group_by(treeid) %>% 
+  summarise(firsty = min(year), 
+            lasty = max(year)) %>% ungroup()
 
 
 #test: all trees (treeid) have the same missing years
@@ -44,10 +46,12 @@ years <- chrono %>% filter(!is.na(year)) %>% group_by(treeid) %>% summarise(firs
 #                                         diff=firsty-lasty,
 #                                         n=n()) %>%  arrange(desc(diff))
 
+#20512 trees in core: str(core%>%distinct(treeid))
+#20356 trees in our missing_years: str(missing_years)
 missing_years  <- core %>% group_by(treeid) %>% filter(!is.na(missing_years)) %>% 
   summarise(missing_years = first(missing_years)) %>% ungroup()
 
-
+#20311 trees in our age: str(age)
 age <- inner_join(years,missing_years, by = "treeid") %>% group_by(treeid) %>% 
   summarise(age=lasty - firsty - missing_years) %>% ungroup()
 
@@ -55,25 +59,43 @@ age <- inner_join(years,missing_years, by = "treeid") %>% group_by(treeid) %>%
 #years %>% anti_join(missing_years, by = "treeid") %>%  count(treeid, sort = TRUE)
 
 
+#80025 in our tree_last_obsv: str(tree_last_obsv%>%distinct(treeid))
 tree_last_obsv <-  tree %>% group_by(treeid) %>% 
   summarise(#save - each treeid has 1 plotid
     plotid = first(plotid),
-    #save - each treeid has one treen
-    treen = max(treen),
+    #be careful treen can contain characters!!!
+    #treen = max(treen, na.rm=TRUE),
+    
     #latest date
     date = max(date)
-  ) %>% ungroup() %>% mutate()
+  ) %>% ungroup() 
 
 # test
 # tree %>% group_by(treeid) %>% 
 #        summarise(diff = length(unique(plotid)))%>% filter(diff>1) %>%arrange(desc(diff))
 
+
+#20311 trees in our plot_age: inner_join(x = tree_last_obsv , y = age, by= "treeid") %>%group_by(treeid)%>%summarise(n=n())
+
+#!!!treen is often NA because the join leaves only trees with treen equal NA
+#Q: why treen is not the same as number of rows (they differ significantly
+#nrow is often very low 1-3 (that is not ok for a number of trees in a plot)
 plot_age <- inner_join(x = tree_last_obsv , y = age, by= "treeid") %>% group_by(plotid) %>%
-  summarise(page=sum(age),
-            avg_page = page/max(treen)) %>% ungroup()
+  summarise(page=sum(age,na.rm=TRUE),
+            #treen=max(treen,na.rm=TRUE),
+            nrows=n(),
+            #avg_page = page/max(treen)
+            avg_page = page/nrows) %>% ungroup()
+
+#!!!nrow and treen are significantly different in original tree as well
+# tree %>% group_by(plotid)%>%summarise(treen = max(treen,na.rm=TRUE),
+#                                        nrow=n()) %>% filter(treen!=nrow)%>%arrange(desc(abs(treen-nrow)))
 
 
 ########tests
+
+a <- tree %>% group_by(plotid)%>%summarise(treen = max(treen,na.rm=TRUE),
+                                      nrow=n())
 
 
 plot_age2 <- inner_join(x = tree %>% group_by(treeid)%>%summarise(plotid=first(plotid)), y = age, by= "treeid") %>%group_by(plotid) %>%
