@@ -2,6 +2,7 @@
 # Hudik, 15.2.2017
 
 library(tidyverse)
+library(leaflet)
 
 ## 1. Settings + data loading ##
 
@@ -77,19 +78,31 @@ tree_last_obsv <-  tree %>% group_by(treeid) %>%
 
 #20311 trees in our plot_age: inner_join(x = tree_last_obsv , y = age, by= "treeid") %>%group_by(treeid)%>%summarise(n=n())
 
-#!!!treen is often NA because the join leaves only trees with treen equal NA
 #Q: why treen is not the same as number of rows (they differ significantly
 #nrow is often very low 1-3 (that is not ok for a number of trees in a plot)
 plot_age <- inner_join(x = tree_last_obsv , y = age, by= "treeid") %>% group_by(plotid) %>%
-  summarise(page=sum(age,na.rm=TRUE),
+  summarise(plot_age=sum(age,na.rm=TRUE),
             #treen=max(treen,na.rm=TRUE),
-            nrows=n(),
+            measured_trees=n(),
             #avg_page = page/max(treen)
-            avg_page = page/nrows) %>% ungroup()
+            avg_age = plot_age/measured_trees) %>% ungroup()
 
-#!!!nrow and treen are significantly different in original tree as well
-# tree %>% group_by(plotid)%>%summarise(treen = max(treen,na.rm=TRUE),
-#                                        nrow=n()) %>% filter(treen!=nrow)%>%arrange(desc(abs(treen-nrow)))
+#add info on country
+plot_age <- plot_age %>% left_join(plot %>% select(plotid, country), by="plotid")
+
+#oldest plots
+plot_age_arr <- plot_age %>% top_n(10,avg_age)%>% arrange(desc(avg_age))
+
+#ggplot(data=plot_age_arr, aes(x=plotid, y=avg_age,fill(measured_trees))) + geom_bar()
+ggplot(data=plot_age_arr, aes(reorder(plotid, -avg_age),y=avg_age,fill=-measured_trees))+
+  geom_bar(stat="identity") +
+  theme(axis.text.x = element_text(angle=45))
+
+#!!! maps are not working!!!!
+qpal <- colorQuantile("Blues", plot_age$country, n = 7)
+map %>% addPolygons(stroke = FALSE, smoothFactor = 0.2, fillOpacity = 1,
+              color = ~qpal(country)
+  )
 
 
 ########tests
