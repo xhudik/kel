@@ -3,6 +3,7 @@
 
 library(tidyverse)
 library(leaflet)
+library(rgdal)
 
 ## 1. Settings + data loading ##
 
@@ -93,16 +94,31 @@ plot_age <- plot_age %>% left_join(plot %>% select(plotid, country), by="plotid"
 #oldest plots
 plot_age_arr <- plot_age %>% top_n(10,avg_age)%>% arrange(desc(avg_age))
 
+
+#models
+summary(lm(avg_age ~ measured_trees, data = plot_age))
+summary(lm(avg_age ~ country -1, data = plot_age))
+plot(lm(avg_age ~ country -1, data = plot_age))
+
+
 #ggplot(data=plot_age_arr, aes(x=plotid, y=avg_age,fill(measured_trees))) + geom_bar()
 ggplot(data=plot_age_arr, aes(reorder(plotid, -avg_age),y=avg_age,fill=-measured_trees))+
   geom_bar(stat="identity") +
   theme(axis.text.x = element_text(angle=45))
 
-#!!! maps are not working!!!!
-qpal <- colorQuantile("Blues", plot_age$country, n = 7)
-map %>% addPolygons(stroke = FALSE, smoothFactor = 0.2, fillOpacity = 1,
-              color = ~qpal(country)
-  )
+#maps are not suitable for our plots since we have many plots per country
+countries <- readOGR("../data/countries.geojson", "OGRGeoJSON")
+countries1 <- readOGR("../data/countries1.geojson", "OGRGeoJSON")
+
+map <- leaflet(countries)
+
+pal <- colorNumeric(
+  palette = "Blues",
+  domain = countries$gdp_md_est
+)
+
+
+
 
 
 ########tests
