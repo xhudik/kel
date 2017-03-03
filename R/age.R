@@ -4,6 +4,7 @@
 library(tidyverse)
 library(leaflet)
 library(rgdal)
+library(mgcv)
 
 ## 1. Settings + data loading ##
 
@@ -96,9 +97,26 @@ plot_age_arr <- plot_age %>% top_n(10,avg_age)%>% arrange(desc(avg_age))
 
 
 #models
+#LM
 summary(lm(avg_age ~ measured_trees, data = plot_age))
+lm(avg_age ~ measured_trees + country -1, data = plot_age)
+
 summary(lm(avg_age ~ country -1, data = plot_age))
 plot(lm(avg_age ~ country -1, data = plot_age))
+
+#GLM
+summary(glm(avg_age ~ measured_trees, data = plot_age))
+plot(glm(avg_age ~ country -1, data = plot_age, family=gaussian(link="log")))
+
+#GAM
+summary(gam(avg_age ~ measured_trees, data = plot_age))
+plot(gam(avg_age ~ country -1, data = plot_age))
+
+summary(glm(avg_age ~ measured_trees-1, data = plot_age))
+summary(lm(avg_age ~ measured_trees-1, data = plot_age))
+
+
+gam(avg_age ~ country -1, data = plot_age, method="REML")
 
 
 #ggplot(data=plot_age_arr, aes(x=plotid, y=avg_age,fill(measured_trees))) + geom_bar()
