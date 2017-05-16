@@ -1,0 +1,7 @@
+---
+- hosts: edge
+  become: True
+  become_method: sudo
+  gather_facts: yes
+  roles:
+    - jupyter

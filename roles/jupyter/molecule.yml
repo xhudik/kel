@@ -1,0 +1,23 @@
+ansible:
+  playbook: tests/test-jupyter.yml
+  verbose: v
+driver:
+  name: vagrant
+vagrant:
+  platforms:
+    - name: centos-7
+      box: bento/centos-7.3
+  providers:
+    - name: virtualbox
+      type: virtualbox
+  instances:
+    - name: edge
+      ansible_groups:
+        - jupyter
+      raw_config_args:
+        - "vm.provider :virtualbox do |vb| vb.memory = '4096' end"
+#        - "vm.network 'forwarded_port', guest: 8080, host: 8080"
+#        - "vm.network 'forwarded_port', guest: 8000, host: 8000"
+
+verifier:
+  name: testinfra

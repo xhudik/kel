@@ -1,0 +1,8 @@
+---
+
+- name: Create config file
+  file: path=/tmp/config state=touch  mode=0644
+
+- name: Set IP address
+  lineinfile: dest=/tmp/config line="hub_ip = '{{ansible_eth0.ipv4.address}}'"
+
